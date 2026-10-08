@@ -1,0 +1,39 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-2025'
+
+steps:
+- checkout: self
+
+- task: NodeTool@0
+  displayName: 'Install Node.js 22'
+  inputs:
+    versionSpec: '22.x'
+
+- powershell: |
+    Invoke-WebRequest https://win.rustup.rs/x86_64 -OutFile rustup-init.exe
+    .\rustup-init.exe -y --default-toolchain stable
+    $env:Path += ";$env:USERPROFILE\.cargo\bin"
+    rustc --version
+    cargo --version
+  displayName: 'Install Rust stable'
+
+- powershell: |
+    npm install --no-audit --no-fund
+  displayName: 'Install dependencies'
+
+- powershell: |
+    npm test
+  displayName: 'Run tests'
+
+- powershell: |
+    npm run build
+  displayName: 'Build Windows .exe and .msi'
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Windows installers'
+  inputs:
+    targetPath: '$(Build.SourcesDirectory)\\src-tauri\\target\\release\\bundle'
+    artifact: 'AI-Game-Maker-Windows'
