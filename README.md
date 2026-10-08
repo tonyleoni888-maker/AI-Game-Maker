@@ -1,30 +1,25 @@
-# AI Game Maker 5.3.0
+# AI Game Maker Web Studio 6.0
 
-AI Game Maker is a Tauri 2 desktop app that creates starter projects for Godot 4.
+A browser-first web app for creating Godot 4 project files with an OpenAI-compatible chat-completions API. It can run as a static site; no Tauri desktop shell is required.
 
-## Current functionality
+## Features
+- Responsive browser UI, prompt-based project generation, editable API endpoint and model ID.
+- API key stays in page memory and is not written to localStorage.
+- JSON response parsing, safe relative-path checks, duplicate-path checks, required-file checks, and one automatic repair request when structural checks fail.
+- Offline starter project when you want to test the interface without an API key.
+- Export generated text files as a ZIP.
 
-- Creates a Godot 4 project with a scene and GDScript.
-- Connects to a locally running Ollama server at `http://127.0.0.1:11434` and sends the game description to the selected local model.
-- If Ollama is unavailable or returns unsuitable code, creates a built-in 2D or 3D playable starter instead.
-- Checks required files and the scene-to-script link.
-- If Godot 4 is installed and on PATH, runs a headless editor check.
-- Saves projects in `AI-Game-Maker-Projects` in the current user's home folder.
+## Limitations
+This is a browser-based project generator, not a frontier foundation model. It uses the model and account configured by the user; it cannot guarantee GPT-6 Astra-level capability. The browser cannot run the Godot engine or truthfully claim engine tests passed. Import exported projects into Godot 4 for actual parsing and runtime testing. Very large generations are limited by the model context window, browser memory, provider rate limits, and practical token budgets. Billions of source-code lines are not a feasible single generation target; use modular, incremental project generation instead.
 
-## Important limitations
+## Run locally
+Requires Node.js 20 or newer.
 
-This version is an initial playable-project generator, not a finished AAA game generator. It does not automatically repair code, create a full asset library, implement plugin installation, or guarantee that arbitrary AI-generated GDScript runs correctly. Godot's headless check is the real syntax/import check when Godot is installed. Ollama and a compatible model must be installed locally for AI generation; the app does not download them for you.
+    npm install
+    npm test
+    npm run dev
 
-## Build
+## Build the static website
+    npm run build:web
 
-Requirements: Node.js, Rust, and the platform-specific Tauri prerequisites. Windows requires the Microsoft C++ Build Tools and WebView2. See the [official Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
-
-```sh
-npm install
-npm test
-npm run build
-```
-
-## Windows installer
-
-Every push to `main` triggers the Windows workflow. When it succeeds, open the [GitHub Actions runs](https://github.com/tonyleoni888-maker/AI-Game-Maker/actions/workflows/windows-tauri.yml) and download the `AI-Game-Maker-Windows` artifact from the successful run.
+The deploy workflow publishes the static site to GitHub Pages on pushes to main after tests/build pass. In repository Settings → Pages, set the source to GitHub Actions if it is not already configured. API requests are sent directly from the user's browser to their chosen provider; that provider must permit browser CORS for its API. Never enter a key on a website you do not trust.

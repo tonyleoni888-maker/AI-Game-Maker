@@ -1,32 +1,21 @@
-name: Windows Tauri Build
+name: AI Game Maker Web CI
 on:
   push:
+  pull_request:
   workflow_dispatch:
-
+permissions:
+  contents: read
 concurrency:
-  group: windows-tauri-build-${{ github.ref }}
+  group: web-ci-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
-  build:
-    runs-on: windows-latest
+  test-build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Tests
-        run: npm test
-      - name: Tauri Windows build
-        run: npm run build
-      - name: Upload Windows installers
-        uses: actions/upload-artifact@v4
-        with:
-          name: AI-Game-Maker-Windows
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
-          if-no-files-found: error
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run build:web
