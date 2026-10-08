@@ -2,6 +2,11 @@ name: Windows Tauri Build
 on:
   push:
   workflow_dispatch:
+
+concurrency:
+  group: windows-tauri-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
