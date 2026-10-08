@@ -1,13 +1,65 @@
 import { invoke } from '@tauri-apps/api/core';
 import './style.css';
 
-const $=s=>document.querySelector(s); const app=$('#app');
-let project=null; const state={logs:[]};
-function log(msg,kind=''){state.logs.unshift({msg,kind});renderLogs();}
-function renderLogs(){const e=$('#logs');if(e)e.innerHTML=state.logs.slice(0,30).map(x=>'<div class="log '+x.kind+'">'+x.msg+'</div>').join('');}
-async function status(){try{return await invoke('environment_status')}catch(e){return {os:'?',godot:null,ollama:false,comfyui:false,project_count:0,error:String(e)}}}
-async function create(){const name=$('#name').value.trim()||'MyGame';const prompt=$('#prompt').value.trim();const mode=$('#mode').value;$('#busy').textContent='Erstelle Projekt…';try{project=await invoke('create_project',{name,prompt,mode});localStorage.setItem('agm-active-project',project);log('Projekt erstellt: '+project,'ok');await heal(prompt)}catch(e){log(String(e),'error')}finally{$('#busy').textContent='';}}
-async function heal(request){if(!project)return;for(let i=1;i<=5;i++){log('Self-Healing '+i+'/5: Validierung…');const v=await invoke('validate_project',{path:project});if(v.ok){const g=await invoke('godot_check',{path:project});if(g.ok||!g.available){log('Projekt validiert. Anfrage: '+request,'ok');return}log('Godot meldet Fehler; Reparatur wird vorbereitet.','error')}else log('Validierungsfehler: '+v.errors.join(', '),'error');if(i<5)log('Reparaturschleife '+i+' abgeschlossen.');}log('Maximale Reparaturrunden erreicht.','error')}
-async function load(){project=localStorage.getItem('agm-active-project');const s=await status();$('#status').textContent=(s.ollama?'Ollama ✓':'Ollama –')+' | '+(s.godot?'Godot ✓':'Godot –')+' | Projekte: '+s.project_count;}
-function render(){app.innerHTML='<aside><h1>◈ AI Game Maker</h1><small>Tauri 2 • Godot 4</small><nav><button class="active">Studio</button><button onclick="location.reload()">Diagnose</button></nav><div class="side">Lokale KI · Self-Healing · Windows Build</div></aside><main><header><div><small>AI GAME STUDIO</small><h2>Baue dein Spiel mit KI</h2><p>Erstelle ein echtes Godot-Projekt und prüfe es automatisch.</p></div><button id="create" class="primary">Spiel erstellen</button></header><section class="cards"><div><b id="status">Lade…</b><span>System</span></div><div><b>5</b><span>max. Reparaturen</span></div><div><b>Tauri 2</b><span>Desktop Runtime</span></div><div><b>Godot 4</b><span>Engine</span></div></section><section class="panel"><label>Projektname<input id="name" value="My Horror Game"></label><label>Was soll gebaut werden?<textarea id="prompt" placeholder="Beschreibe dein Spiel…">Ein hochwertiges 3D-Horrorspiel mit Atmosphäre, Licht und Gameplay.</textarea></label><label>Modus<select id="mode"><option>3D</option><option>2D</option></select></label><div id="busy"></div></section><section class="panel"><h3>Self-Healing Agent</h3><div class="loop"><div>1. Generate</div><div>2. Validate</div><div>3. Repair</div><div>4. Retest</div><div>5. Improve</div></div><div id="logs"></div></section></main>';$('#create').onclick=create;load();renderLogs();}
+const $ = (s) => document.querySelector(s);
+const app = $('#app');
+let project = null;
+const state = { logs: [] };
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function log(msg, kind = '') {
+  state.logs.unshift({ msg: String(msg), kind });
+  renderLogs();
+}
+function renderLogs() {
+  const e = $('#logs');
+  if (e) e.innerHTML = state.logs.slice(0, 30).map(x => '<div class="log ' + escapeHtml(x.kind) + '">' + escapeHtml(x.msg) + '</div>').join('');
+}
+async function status() {
+  try { return await invoke('environment_status'); }
+  catch (e) { return { os: '?', godot: null, ollama: false, ollama_model: null, comfyui: false, project_count: 0, error: String(e) }; }
+}
+async function create() {
+  const button = $('#create');
+  button.disabled = true;
+  $('#busy').textContent = 'Erstelle Spielprojekt – lokale KI kann bis zu 3 Minuten brauchen …';
+  const name = $('#name').value.trim() || 'MyGame';
+  const prompt = $('#prompt').value.trim();
+  const mode = $('#mode').value;
+  const model = $('#model').value.trim();
+  try {
+    const result = await invoke('create_project', { name, prompt, mode, model });
+    project = result.path;
+    localStorage.setItem('agm-active-project', project);
+    log(result.message, result.ai_used ? 'ok' : '');
+    log('Projekt gespeichert unter: ' + project, 'ok');
+    const validation = await invoke('validate_project', { path: project });
+    if (validation.ok) log('Dateien und Szenenverknüpfung geprüft: OK', 'ok');
+    else log('Validierung: ' + validation.errors.join(', '), 'error');
+    const check = await invoke('godot_check', { path: project });
+    if (check.available && check.ok) log('Godot-Headless-Prüfung bestanden.', 'ok');
+    else if (!check.available) log('Godot nicht gefunden – automatische Engine-Prüfung übersprungen.', '');
+    else log('Godot-Prüfung meldet Fehler: ' + (check.details || check.code || 'unbekannter Fehler'), 'error');
+    $('#project-path').textContent = project;
+    $('#open-note').textContent = 'Öffne diesen Ordner in Godot 4 über Projektmanager → Importieren → project.godot.';
+  } catch (e) {
+    log(String(e), 'error');
+  } finally {
+    $('#busy').textContent = '';
+    button.disabled = false;
+  }
+}
+async function load() {
+  project = localStorage.getItem('agm-active-project');
+  const s = await status();
+  $('#status').textContent = (s.ollama ? 'Ollama ✓ ' + (s.ollama_model || '') : 'Ollama nicht bereit') + ' | ' + (s.godot ? 'Godot ✓' : 'Godot nicht gefunden') + ' | Projekte: ' + s.project_count;
+  if (project) $('#project-path').textContent = project;
+  if (s.ollama_model && !$('#model').value) $('#model').value = s.ollama_model;
+  log(s.ollama ? 'Lokale KI erreichbar.' : 'Ohne Ollama erstellt die App einen spielbaren Starter. Für echte KI-Generierung muss Ollama mit einem Modell laufen.');
+}
+function render() {
+  app.innerHTML = '<aside><h1>◈ AI Game Maker</h1><small>Tauri 2 · Godot 4</small><nav><button class="active">Studio</button></nav><div class="side">Lokale KI-Generierung · Projektprüfung · keine API-Kosten</div></aside><main><header><div><small>AI GAME STUDIO</small><h2>Baue dein Spiel mit KI</h2><p>Erstellt ein Godot-Projekt mit lokal generiertem GDScript – oder einem spielbaren Starter, wenn keine KI läuft.</p></div><button id="create" class="primary">Spiel erstellen</button></header><section class="cards"><div><b id="status">System wird geprüft …</b><span>Lokale Dienste</span></div><div><b>Ollama</b><span>Lokale KI, wenn installiert</span></div><div><b>Godot 4</b><span>Engine-Prüfung, wenn installiert</span></div><div><b>Kein API-Key</b><span>Lokale Generierung</span></div></section><section class="panel"><h3>Neues Spiel</h3><label>Projektname<input id="name" value="My Horror Game" maxlength="64"></label><label>Spielbeschreibung<textarea id="prompt" placeholder="Beschreibe dein Spiel …">Erstelle ein atmosphärisches 3D-Horrorspiel in einer verlassenen Forschungsstation. Kaltes Licht, unheimliche Räume, Erkundung und ein klares Ziel. Baue eine spielbare erste Szene mit Bewegung und Interaktionen.</textarea></label><div class="fields"><label>Spieltyp<select id="mode"><option>3D</option><option>2D</option></select></label><label>Ollama-Modell<input id="model" value="qwen2.5-coder:7b" placeholder="z. B. qwen2.5-coder:7b"></label></div><div id="busy" role="status"></div><p class="hint">Modellname muss exakt zu einem lokal installierten Ollama-Modell passen. Die App lädt keine Modelle automatisch herunter.</p></section><section class="panel"><h3>Ergebnis</h3><div id="project-path" class="path">Noch kein Projekt erstellt.</div><p id="open-note" class="hint">Nach der Erstellung erscheint hier der Projektordner.</p></section><section class="panel"><h3>Prüfprotokoll</h3><div id="logs"></div></section></main>';
+  $('#create').onclick = create;
+  load();
+  renderLogs();
+}
 render();
