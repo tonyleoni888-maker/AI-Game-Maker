@@ -22,4 +22,4 @@ Requires Node.js 20 or newer.
 ## Build the static website
     npm run build:web
 
-The deploy workflow publishes the static site to GitHub Pages on pushes to main after tests/build pass. In repository Settings → Pages, set the source to GitHub Actions if it is not already configured. API requests are sent directly from the user's browser to their chosen provider; that provider must permit browser CORS for its API. Never enter a key on a website you do not trust.
+The deploy workflow publishes the static site to GitHub Pages on pushes to main after tests/build pass. The Web CI workflow runs the tests and production build on pushes and pull requests. In repository Settings → Pages, set the source to GitHub Actions if it is not already configured. API requests are sent directly from the user's browser to their chosen provider; that provider must permit browser CORS for its API. Never enter a key on a website you do not trust.
