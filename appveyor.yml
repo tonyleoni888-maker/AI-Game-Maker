@@ -1,0 +1,29 @@
+version: 1.0
+image: Visual Studio 2022
+platform:
+  - x64
+
+install:
+  - ps: |
+      if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) {
+        Invoke-WebRequest https://win.rustup.rs/x86_64 -OutFile rustup-init.exe
+        .\rustup-init.exe -y --default-toolchain stable
+        $env:Path += ";$env:USERPROFILE\.cargo\bin"
+      }
+      rustc --version
+      cargo --version
+  - cmd: npm install --no-audit --no-fund
+
+before_build:
+  - cmd: npm test
+
+build_script:
+  - cmd: npm run build
+
+artifacts:
+  - path: src-tauri\target\release\bundle\nsis\*.exe
+    name: AI-Game-Maker-EXE
+  - path: src-tauri\target\release\bundle\msi\*.msi
+    name: AI-Game-Maker-MSI
+
+test: off
