@@ -18,7 +18,7 @@ test('Tauri 2 config and aligned version', () => {
   assert.equal(c.productName, 'AI Game Maker');
   assert.equal(c.identifier, 'com.aigamemaker.studio');
   assert.equal(c.version, p.version);
-  assert.match(cargo, new RegExp('version="' + p.version + '"'));
+  assert.match(cargo, new RegExp('version\\s*=\\s*"' + p.version + '"'));
 });
 test('backend commands and local AI integration', () => {
   const r = read('src-tauri/src/main.rs');
