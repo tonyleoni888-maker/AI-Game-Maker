@@ -20,5 +20,13 @@ navItems.forEach((item,i)=>{item.setAttribute('role','button');item.setAttribute
 $('.project-menu').addEventListener('click',()=>{const field=$('#name');field.focus();field.select();log('Project name selected — edit it in the project field.','ok')});
 $('#prompt').addEventListener('input',()=>{const count=$('#prompt').value.length;let counter=$('#prompt-counter');if(!counter){counter=document.createElement('span');counter.id='prompt-counter';counter.className='field-hint';$('.label-row').appendChild(counter)}counter.textContent=count.toLocaleString('de-DE')+' / 12.000';counter.setAttribute('aria-live','polite')});
 $('#prompt').dispatchEvent(new Event('input'));
+const toast=document.createElement('div');toast.className='studio-toast';toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');document.body.appendChild(toast);
+let toastTimer;function notify(message){toast.textContent=message;toast.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('visible'),2600)}
+$('#api-key').addEventListener('input',()=>{const status=$('.connection-status');status.innerHTML=$('#api-key').value.trim()?'<i class="connected-dot"></i> Provider key entered':'<i></i> System ready'});
+$('#endpoint').addEventListener('change',()=>notify('API endpoint updated for the next request.'));
+$('#model').addEventListener('change',()=>notify('Model selection updated.'));
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();generate()}if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&!e.ctrlKey&&!e.metaKey){e.preventDefault();$('#prompt').focus()}if(e.key==='Escape')document.querySelector('.api-settings').open=false});
+$('#export').title='Export all project files as a ZIP archive';
+$('#generate').title='Generate, review and attempt to repair your game project';
 refresh()}
 render();
